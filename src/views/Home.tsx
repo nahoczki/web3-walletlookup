@@ -1,11 +1,13 @@
 import { PublicKey, Connection, clusterApiUrl } from "@solana/web3.js";
 import React, {useEffect, useState} from "react";
 import {PuffLoader} from "react-spinners";
+import {getParsedNftAccountsByOwner} from "../helpers/getParsedNFTAccountsByOwner";
 import styled from "styled-components";
 
 const Wrapper = styled.div`
   display: flex;
-  height: 100vh;
+  padding-top: 50px;
+  height: 100%;
   flex-direction: column;
   gap: 20px;
   justify-content: center;
@@ -28,6 +30,23 @@ const ResultCard = styled.div`
   border-radius: 10px;
   border: whitesmoke 0.5px solid;
   text-align: center;
+`
+
+const NFTDisplay = styled.div`
+  display: flex;
+  padding: 20px;
+  width: 100%;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px 10px;
+  justify-content: center;
+  align-items: center;
+`
+
+const NFTImage = styled.img`
+  border-radius: 10px;
+  width: 250px;
+  height: 250px;
 `
 
 const Equals = styled.span`
@@ -60,30 +79,47 @@ interface WalletData {
     sol: number | null
     usd: number | null
     wallet: string | null
+    nfts: string[] | null
 }
 
 const Home = () => {
 
     //let myWallet = 'ABM7PKVXHDP7sXXV1SmiMGFyesgnJWymDzxQQWHHp5io'
+    //
+    // const programId = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 
     let [wallet, setWallet] = useState("")
-    let [data, setData] = useState<WalletData>({sol: null, usd: null, wallet: null})
+    let [data, setData] = useState<WalletData>({sol: null, usd: null, wallet: null, nfts: null})
     let [loading, setLoading] = useState(false)
     let [err, setErr] = useState("")
-
-    useEffect(() => {
-
-    }, [])
 
     const getWalletInfo = async () => {
         let connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
         try {
             let info = await connection.getBalance(new PublicKey(wallet))
-            return info
-        } catch {
+            let nfts = await getParsedNftAccountsByOwner({publicAddress: wallet, connection: connection})
+            // let s = await connection.getTokenAccountsByOwner(new PublicKey(wallet), {programId: new PublicKey(programId)})
+            // console.log(JSON.stringify(s))
+            // let spl = await connection.getTokenAccountBalance(new PublicKey("GDVjgaudgFUn2H1WAytLtrYrDi3vPDrfaLghkdynvn8t"))
+            // console.log(JSON.stringify(spl))
+            console.log(nfts)
+            return {info: info, nfts: nfts}
+        } catch (e) {
+            console.log(e)
             return null
         }
 
+    }
+
+    const parseThroughNFTs = async (nfts: any) => {
+        let imageArray : string[] = [];
+        await Promise.all(nfts.map(async (nft : any) => {
+            let dataURI = nft.data.uri;
+            let data = await fetch(dataURI)
+            let json = await data.json()
+            imageArray.push(json.image)
+        }));
+        return imageArray
     }
 
     const handleClick = async () => {
@@ -93,12 +129,15 @@ const Home = () => {
         let walletInfo = await getWalletInfo()
 
         if (walletInfo) {
-            let solValue = walletInfo/1000000000
-
-            setData({
-                sol: solValue,
-                usd: 0.0,
-                wallet: wallet
+            let solValue = walletInfo.info/1000000000
+            parseThroughNFTs(walletInfo.nfts).then(imageArray => {
+                console.log(imageArray)
+                setData({
+                    sol: solValue,
+                    usd: 0.0,
+                    wallet: wallet,
+                    nfts: imageArray
+                })
             })
 
             setWallet("")
@@ -135,6 +174,16 @@ const Home = () => {
                         <h3>-- USD</h3>
                     </div>
                 </ResultCard>
+            }
+
+            {loading ? <PuffLoader color={"#00FFA3"}/> : err !== "" ? <ErrorText>{err}</ErrorText> : !data.sol ? "" :
+                <NFTDisplay>
+                    {console.log(data.nfts!)}
+                    {data.nfts!.map((nft, i) => {
+                        console.log("run")
+                        return <NFTImage src={nft} key={i}/>
+                    })}
+                </NFTDisplay>
             }
         </Wrapper>
     )
