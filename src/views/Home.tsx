@@ -59,6 +59,7 @@ const ErrorText = styled.p`
 interface WalletData {
     sol: number | null
     usd: number | null
+    wallet: string | null
 }
 
 const Home = () => {
@@ -66,7 +67,7 @@ const Home = () => {
     //let myWallet = 'ABM7PKVXHDP7sXXV1SmiMGFyesgnJWymDzxQQWHHp5io'
 
     let [wallet, setWallet] = useState("")
-    let [data, setData] = useState<WalletData>({sol: null, usd: null})
+    let [data, setData] = useState<WalletData>({sol: null, usd: null, wallet: null})
     let [loading, setLoading] = useState(false)
     let [err, setErr] = useState("")
 
@@ -96,8 +97,11 @@ const Home = () => {
 
             setData({
                 sol: solValue,
-                usd: 0.0
+                usd: 0.0,
+                wallet: wallet
             })
+
+            setWallet("")
         } else {
             setErr("Wallet doesnt exist")
         }
@@ -124,7 +128,7 @@ const Home = () => {
                 <ResultCard>
                     <div>
                         <h2>Wallet</h2>
-                        <div><code>{wallet}</code></div>
+                        <div><code>{data.wallet}</code></div>
                         <h2>Balance</h2>
                         <h3>{data.sol} SOL</h3>
                         <Equals>=</Equals>
