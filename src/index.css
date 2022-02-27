@@ -35,3 +35,11 @@ code {
   background-color: #4f2275;
   font-size: 15px;
 }
+
+.wallet-adapter-modal {
+  position: absolute;
+  display: flex;
+  width: 50%;
+  background-color: red;
+  padding: 10px;
+}
