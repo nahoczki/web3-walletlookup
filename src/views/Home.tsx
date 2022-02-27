@@ -1,12 +1,13 @@
 import { PublicKey, Connection, clusterApiUrl } from "@solana/web3.js";
 import React, {useEffect, useState} from "react";
-import {PuffLoader} from "react-spinners";
+import {PuffLoader, BarLoader} from "react-spinners";
 import {getParsedNftAccountsByOwner} from "../helpers/getParsedNFTAccountsByOwner";
 import styled from "styled-components";
 
-const Wrapper = styled.div`
+const Wrapper = styled.form`
   display: flex;
   padding-top: 50px;
+  padding-bottom: 50px;
   height: 100%;
   flex-direction: column;
   gap: 20px;
@@ -47,6 +48,12 @@ const NFTImage = styled.img`
   border-radius: 10px;
   width: 250px;
   height: 250px;
+  -o-transition: all .2s ease-in-out;
+  -webkit-transition: all .2s ease-in-out;
+  transition: all .2s ease-in-out;
+  :hover {
+    transform: scale(1.1);
+  }
 `
 
 const Equals = styled.span`
@@ -84,6 +91,8 @@ interface WalletData {
 
 const Home = () => {
 
+    const SOL_CONVERSION_API = "https://api.coinbase.com/v2/exchange-rates?currency=SOL"
+
     //let myWallet = 'ABM7PKVXHDP7sXXV1SmiMGFyesgnJWymDzxQQWHHp5io'
     //
     // const programId = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
@@ -98,11 +107,6 @@ const Home = () => {
         try {
             let info = await connection.getBalance(new PublicKey(wallet))
             let nfts = await getParsedNftAccountsByOwner({publicAddress: wallet, connection: connection})
-            // let s = await connection.getTokenAccountsByOwner(new PublicKey(wallet), {programId: new PublicKey(programId)})
-            // console.log(JSON.stringify(s))
-            // let spl = await connection.getTokenAccountBalance(new PublicKey("GDVjgaudgFUn2H1WAytLtrYrDi3vPDrfaLghkdynvn8t"))
-            // console.log(JSON.stringify(spl))
-            console.log(nfts)
             return {info: info, nfts: nfts}
         } catch (e) {
             console.log(e)
@@ -122,32 +126,35 @@ const Home = () => {
         return imageArray
     }
 
-    const handleClick = async () => {
+    const convertSOLtoUSD = async (sol: number) => {
+        let data = await fetch(SOL_CONVERSION_API)
+        let json = await data.json()
+        return sol * json.data.rates.USD
+    }
 
+    const handleClick = async (e: any) => {
+        e.preventDefault()
+        setData({sol: null, usd: null, wallet: null, nfts: null})
         setLoading(true)
         setErr("")
         let walletInfo = await getWalletInfo()
 
         if (walletInfo) {
-            let solValue = walletInfo.info/1000000000
+            let solValue = walletInfo.info/1000000000;
+            let usdValue = await convertSOLtoUSD(solValue);
             parseThroughNFTs(walletInfo.nfts).then(imageArray => {
-                console.log(imageArray)
                 setData({
                     sol: solValue,
-                    usd: 0.0,
+                    usd: usdValue,
                     wallet: wallet,
                     nfts: imageArray
                 })
             })
-
             setWallet("")
         } else {
             setErr("Wallet doesnt exist")
         }
-
         setLoading(false)
-
-
     }
 
     const handleInput = (e : React.ChangeEvent<HTMLInputElement>) => {
@@ -157,10 +164,10 @@ const Home = () => {
 
 
     return (
-        <Wrapper>
+        <Wrapper onSubmit={handleClick}>
             <h1>Wallet Look Up</h1>
-            <Input placeholder={"Wallet Address"} value={wallet} onInput={handleInput}/>
-            <Button className="text-white font-bold py-2 px-4 rounded-full" onClick={handleClick}>
+            <Input type={"text"} placeholder={"Wallet Address"} value={wallet} onInput={handleInput}/>
+            <Button type={"submit"}>
                 Go
             </Button>
             {loading ? <PuffLoader color={"#00FFA3"}/> : err !== "" ? <ErrorText>{err}</ErrorText> : !data.sol ? "" :
@@ -171,16 +178,14 @@ const Home = () => {
                         <h2>Balance</h2>
                         <h3>{data.sol} SOL</h3>
                         <Equals>=</Equals>
-                        <h3>-- USD</h3>
+                        <h3>${data.usd} USD</h3>
                     </div>
                 </ResultCard>
             }
 
-            {loading ? <PuffLoader color={"#00FFA3"}/> : err !== "" ? <ErrorText>{err}</ErrorText> : !data.sol ? "" :
+            {loading ? "" : err !== "" ? "" : !data.sol ? "" :
                 <NFTDisplay>
-                    {console.log(data.nfts!)}
                     {data.nfts!.map((nft, i) => {
-                        console.log("run")
                         return <NFTImage src={nft} key={i}/>
                     })}
                 </NFTDisplay>
