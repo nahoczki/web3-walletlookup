@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo} from 'react'
+import {useLayoutEffect, useMemo, useState} from 'react'
 import './App.css'
 import Preloader from "./components/Preloader";
 import { gsap } from "gsap";
@@ -16,11 +16,13 @@ import {
     SolletWalletAdapter,
     TorusWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
-import WalletModal from "./components/WalletModal";
+import WalletModal from "./components/wallet/WalletModal";
 
 function App() {
 
     let preLoaderRef: HTMLDivElement | null;
+
+    let [modalOpen, setModalOpen] = useState(false)
 
     // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
     const network = WalletAdapterNetwork.Devnet;
@@ -61,8 +63,8 @@ function App() {
         <ConnectionProvider endpoint={endpoint}>
             <WalletProvider wallets={wallets} autoConnect>
                 <Preloader ref={e => (preLoaderRef = e)}/>
-                <WalletModal open={true}/>
-                <NavBar/>
+                <WalletModal open={modalOpen} setModal={setModalOpen}/>
+                <NavBar setModal={setModalOpen}/>
                 <Home/>
             </WalletProvider>
         </ConnectionProvider>
